@@ -21,6 +21,8 @@ class FormPreview(object):
         self.form, self.state = form, {}
 
     def __call__(self, request, *args, **kwargs):
+        self.request = request
+
         stage = {
             '1': 'preview',
             '2': 'post',
@@ -50,8 +52,7 @@ class FormPreview(object):
 
     def preview_get(self, request):
         "Displays the form"
-        f = self.form(auto_id=self.get_auto_id(),
-                      initial=self.get_initial(request))
+        f = self.get_form()
         return render(request, self.form_template, self.get_context(request, f))
 
     def preview_post(self, request):
@@ -59,7 +60,7 @@ class FormPreview(object):
         Validates the POST data. If valid, displays the preview page.
         Else, redisplays form.
         """
-        f = self.form(request.POST, auto_id=self.get_auto_id())
+        f = self.get_form()
         context = self.get_context(request, f)
         if f.is_valid():
             self.process_preview(request, f, context)
@@ -77,7 +78,7 @@ class FormPreview(object):
         """
         Validates the POST data. If valid, calls done(). Else, redisplays form.
         """
-        form = self.form(request.POST, auto_id=self.get_auto_id())
+        form = self.get_form()
         if form.is_valid():
             if not self._check_security_hash(
                     request.POST.get(self.unused_name('hash'), ''),
@@ -95,6 +96,24 @@ class FormPreview(object):
         rendering two form previews in the same template.
         """
         return AUTO_ID
+
+    def get_form(self):
+        return self.form(**self.get_form_kwargs())
+
+    def get_form_kwargs(self):
+        kwargs = {
+            'auto_id': self.get_auto_id(),
+        }
+
+        if self.request.method in ('POST', 'PUT'):
+            kwargs.update({
+                'data': self.request.POST,
+                'files': self.request.FILES,
+            })
+        else:
+            kwargs.update({'initial': self.get_initial(self.request)})
+
+        return kwargs
 
     def get_initial(self, request):
         """
