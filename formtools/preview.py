@@ -83,7 +83,7 @@ class FormPreview(object):
                     request.POST.get(self.unused_name('hash'), ''),
                     request, form):
                 return self.failed_hash(request)  # Security hash failed.
-            return self.done(request, form.cleaned_data)
+            return self.done(request, form)
         else:
             return render(request, self.form_template, self.get_context(request, form))
 
